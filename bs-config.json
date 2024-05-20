@@ -1,0 +1,8 @@
+{
+    "server": {
+      "baseDir": "./", 
+      "index": "index.html" 
+    },
+    "files": ["**/*"], 
+    "reloadDebounce": 2000
+  }

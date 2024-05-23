@@ -18,10 +18,10 @@ class StereoCamera {
     }
     ApplyLeftFrustum() {
 
-        const top = this.mNearClippingDistance * tan(this.mFOV / 2);
+        const top = this.mNearClippingDistance * Math.tan(this.mFOV / 2);
         const bottom = -top;
 
-        const a = this.mAspectRatio * tan(this.mFOV / 2) * this.mConvergence;
+        const a = this.mAspectRatio * Math.tan(this.mFOV / 2) * this.mConvergence;
 
         const b = a - this.mEyeSeparation / 2;
         const c = a + this.mEyeSeparation / 2;
@@ -36,10 +36,10 @@ class StereoCamera {
     }
     ApplyRightFrustum() {
 
-        const top = this.mNearClippingDistance * tan(this.mFOV / 2);
+        const top = this.mNearClippingDistance * Math.tan(this.mFOV / 2);
         const bottom = -top;
 
-        const a = this.mAspectRatio * tan(this.mFOV / 2) * this.mConvergence;
+        const a = this.mAspectRatio * Math.tan(this.mFOV / 2) * this.mConvergence;
 
         const b = a - this.mEyeSeparation / 2;
         const c = a + this.mEyeSeparation / 2;

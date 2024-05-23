@@ -1,25 +1,20 @@
 <!DOCTYPE html>
-<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
-
-<title>PA#2</title>
-<style>
-    body {
-        background-color: #EEEEEE;
-    }
-</style>
-
-<script src="./Utils/trackball-rotator.js"></script>
-<script src="./Utils/m4.js"></script>
-<script src="./shader.gpu"></script>
-<script type="module" src="./main.js" defer></script>
-<script src="./Utils/StereoCamera.js"></script>
-
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>PA#1</title>
+    <style>
+        body {
+            background-color: #EEEEEE;
+        }
+    </style>
+    <script src="./Utils/trackball-rotator.js"></script>
+    <script src="./Utils/m4.js"></script>
+    <script src="./StereoCamera.js"></script>
+    <script src="./shader.gpu"></script>
+    <script type="module" src="./main.js" defer></script>
 </head>
-
-
 <body>
-
     <h2>A "Surface of Revolution with Damping Circular Waves" with "Trackball" Mouse Rotation</h2>
 
     <label for="u_points">Number of points in u direction:</label>
@@ -30,21 +25,21 @@
     <input type="range" id="v_points" min="1" max="400" step="5" value="20">
     <span id="v_points_value"></span><br><br>
 
-    <label for="damping">Damping Coefficient:</label>
-    <input type="range" id="damping" min="-3" max="3" step="0.1" value="1">
-    <span id="damping_value"></span><br><br>
+    <label for="eyeSeparation">Eye Separation:</label>
+    <input type="range" id="eyeSeparation" min="0" max="100" step="1" value="70">
+    <span id="eyeSeparation_value"></span><br><br>
 
-    <label for="length">Length of Segment:</label>
-    <input type="range" id="length" min="-7" max="7" step="0.1" value="1">
-    <span id="length_value"></span><br><br>
+    <label for="fov">Field of View:</label>
+    <input type="range" id="fov" min="30" max="120" step="1" value="45">
+    <span id="fov_value"></span><br><br>
 
-    <label for="waves">Number of Half-Waves:</label>
-    <input type="range" id="waves" min="1" max="15" step="1" value="5">
-    <span id="waves_value"></span><br><br>
+    <label for="nearClipping">Near Clipping Distance:</label>
+    <input type="range" id="nearClipping" min="1" max="100" step="1" value="10">
+    <span id="nearClipping_value"></span><br><br>
 
-    <label for="phase">Phase Angle:</label>
-    <input type="range" id="phase" min="0" max="360" step="5" value="45">
-    <span id="phase_value"></span><br><br><br>
+    <label for="convergence">Convergence Distance:</label>
+    <input type="range" id="convergence" min="100" max="5000" step="100" value="2000">
+    <span id="convergence_value"></span><br><br>
 
     <label>Light position:</label>
     <input type="range" id="x_light" min="-600" max="360" step="15" value="40">
@@ -56,21 +51,15 @@
     Z = <span id="z_light_value"></span>
     <br>
 
-
     <p id="message">Drag your mouse to rotate surface.<br>
     (On a touch screen, you can use your finger.)</p>
-
 
     <div id="canvas-holder">
     <canvas width="600" height="600" id="webglcanvas" style="background-color:red"></canvas>
     </div>
-
-
 </body>
-
 <script type="module">
-    import {init} from './main.js';
+    import { init } from './main.js';
     init();
 </script>
-
 </html>

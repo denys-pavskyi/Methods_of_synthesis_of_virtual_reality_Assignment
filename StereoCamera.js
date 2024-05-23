@@ -12,7 +12,7 @@ class StereoCamera {
         this.mConvergence = Convergence;
         this.mEyeSeparation = EyeSeparation;
         this.mAspectRatio = AspectRatio;
-        this.mFOV = FOV * PI / 180.0;
+        this.mFOV = FOV * Math.PI / 180.0;
         this.mNearClippingDistance = NearClippingDistance;
         this.mFarClippingDistance = FarClippingDistance;
     }

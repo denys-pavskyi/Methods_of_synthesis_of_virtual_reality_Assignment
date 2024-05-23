@@ -16,6 +16,27 @@ let fi = Math.PI / 4;
 let rMax = 1.5; // Maximum r value
 let lightX, lightY, lightZ;
 
+
+
+// StereoCamera settings
+let stereoCamera;
+let convergence = 2000.0;
+let eyeSeparation = 70.0;
+let fov = 45.0;
+let nearClippingDistance = 10.0;
+let farClippingDistance = 20000.0;
+
+function initStereoCamera() {
+    stereoCamera = new StereoCamera(
+        convergence,
+        eyeSeparation,
+        gl.canvas.clientWidth / gl.canvas.clientHeight,
+        fov,
+        nearClippingDistance,
+        farClippingDistance
+    );
+}
+
 let normals = [];
 
 function deg2rad(angle) {
@@ -29,13 +50,12 @@ function updateValue(elementId) {
 }
 
 function retrieveValuesFromInputs() {
-    numPointsU  = parseInt(document.getElementById('u_points').value);
-    numPointsV  = parseInt(document.getElementById('v_points').value);
-    damping_coef = parseFloat(document.getElementById('damping').value);
-    b = parseFloat(document.getElementById('length').value);
-    m = parseInt(document.getElementById('waves').value);
-    fi = deg2rad(parseInt(document.getElementById('phase').value));
-
+    numPointsU = parseInt(document.getElementById('u_points').value);
+    numPointsV = parseInt(document.getElementById('v_points').value);
+    eyeSeparation = parseFloat(document.getElementById('eyeSeparation').value);
+    fov = parseFloat(document.getElementById('fov').value);
+    nearClippingDistance = parseFloat(document.getElementById('nearClipping').value);
+    convergence = parseFloat(document.getElementById('convergence').value);
 
     lightX = deg2rad(parseInt(document.getElementById('x_light').value));
     lightY = deg2rad(parseInt(document.getElementById('y_light').value));
@@ -51,59 +71,63 @@ function reDraw(){
 }
 
 // Add event listeners to update displayed values when inputs change
-document.getElementById('u_points').addEventListener('input', function() {
+document.getElementById('u_points').addEventListener('input', function () {
     updateValue('u_points');
     retrieveValuesFromInputs();
     reDraw();
 });
-document.getElementById('v_points').addEventListener('input', function() {
+document.getElementById('v_points').addEventListener('input', function () {
     updateValue('v_points');
     retrieveValuesFromInputs();
     reDraw();
 });
-document.getElementById('damping').addEventListener('input', function() {
-    updateValue('damping');
+document.getElementById('eyeSeparation').addEventListener('input', function () {
+    updateValue('eyeSeparation');
     retrieveValuesFromInputs();
-    reDraw();
+    initStereoCamera();
+    draw();
 });
-document.getElementById('length').addEventListener('input', function() {
-    updateValue('length');
+document.getElementById('fov').addEventListener('input', function () {
+    updateValue('fov');
     retrieveValuesFromInputs();
-    reDraw();
+    initStereoCamera();
+    draw();
 });
-document.getElementById('waves').addEventListener('input', function() {
-    updateValue('waves');
+document.getElementById('nearClipping').addEventListener('input', function () {
+    updateValue('nearClipping');
     retrieveValuesFromInputs();
-    reDraw();
+    initStereoCamera();
+    draw();
 });
-document.getElementById('phase').addEventListener('input', function() {
-    updateValue('phase');
+document.getElementById('convergence').addEventListener('input', function () {
+    updateValue('convergence');
     retrieveValuesFromInputs();
-    reDraw();
+    initStereoCamera();
+    draw();
 });
-document.getElementById('x_light').addEventListener('input', function() {
+document.getElementById('x_light').addEventListener('input', function () {
     updateValue('x_light');
     retrieveValuesFromInputs();
     reDraw();
 });
-document.getElementById('y_light').addEventListener('input', function() {
+document.getElementById('y_light').addEventListener('input', function () {
     updateValue('y_light');
     retrieveValuesFromInputs();
     reDraw();
 });
-document.getElementById('z_light').addEventListener('input', function() {
+document.getElementById('z_light').addEventListener('input', function () {
     updateValue('z_light');
     retrieveValuesFromInputs();
     reDraw();
 });
 
-//Initialize displayed values on page load
+// Initialize displayed values on page load
 updateValue('u_points');
 updateValue('v_points');
-updateValue('damping');
-updateValue('length');
-updateValue('waves');
-updateValue('phase');
+updateValue('eyeSeparation');
+updateValue('fov');
+updateValue('nearClipping');
+updateValue('convergence');
 updateValue('x_light');
 updateValue('y_light');
 updateValue('z_light');
@@ -407,7 +431,7 @@ export function init() {
     }
 
     spaceball = new TrackballRotator(canvas, draw, 0);
-
+    initStereoCamera();
     draw();
 }
 

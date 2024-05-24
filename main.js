@@ -19,12 +19,12 @@ let lightX, lightY, lightZ;
 
 
 // StereoCamera settings
-let stereoCamera;
-let convergence = 2000.0;
-let eyeSeparation = 70.0;
-let fov = 45.0;
-let nearClippingDistance = 10.0;
-let farClippingDistance = 20000.0;
+let stereoCamera; // Holds the instance of the StereoCamera class for managing stereo (3D) rendering setup
+let convergence = 2000.0; // Convergence distance: the point in space where the two eyes' views converge
+let eyeSeparation = 70.0; // Eye separation (mm)
+let fov = 45.0; // Field of View (in degrees)
+let nearClippingDistance = 10.0; // Near clipping distance: the closest distance from the camera at which objects are rendered
+let farClippingDistance = 20000.0; // Far clipping distance: the furthest distance from the camera at which objects are rendered
 
 function initStereoCamera() {
     stereoCamera = new StereoCamera(
@@ -160,13 +160,6 @@ function Model(name) {
         gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iAttribVertex);
         
-
-        
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.iNormalBuffer);
-        gl.vertexAttribPointer(shProgram.iAttribNormal, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(shProgram.iAttribNormal);
-
-
         gl.drawArrays(gl.TRIANGLES, 0, this.count);
     }
 }

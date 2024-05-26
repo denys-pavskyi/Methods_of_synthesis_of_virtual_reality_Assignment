@@ -190,48 +190,39 @@ function ShaderProgram(name, program) {
 
 // Draws a Surface of Revolution with Damping Circular Waves, along with a set of coordinate axes.
 function draw() { 
-    // gl.clearColor(0,0,0,1);
-    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    
-    // /* Set the values of the Perspective projection transformation */
-    // let projection = m4.perspective(Math.PI/8, 1, 8, 12); 
-    
-    // /* Get the view matrix from the SimpleRotator object.*/
-    // let modelView = spaceball.getViewMatrix();
-
-    // let rotateToPointZero = m4.axisRotation([0.707,0.707,0], 0.7);
-    // let translateToPointZero = m4.translation(0,0,-10);
-
-    // let matAccum0 = m4.multiply(rotateToPointZero, modelView );
-    // let matAccum1 = m4.multiply(translateToPointZero, matAccum0 );
-        
-    // /* Multiply the projection matrix times the modelview matrix to give the
-    //    combined transformation matrix, and send that to the shader program. */
-    // let modelViewProjection = m4.multiply(projection, matAccum1 );
-
-    // gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection );
-    
-
-    // let modelviewInv = new Float32Array(16);
-    // let normalmatrix = new Float32Array(16);
-    // mat4Invert(modelViewProjection, modelviewInv);
-    // mat4Transpose(modelviewInv, normalmatrix);
-
-    // gl.uniformMatrix4fv(shProgram.iNormalMatrix, false, normalmatrix);
-
-    // gl.uniform3fv(shProgram.lightPos, [lightX, lightY, lightZ]);
-    // surface.Draw();
-
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     /* Set up the stereo camera system */
     initStereoCamera();
 
+    // General settings
+
+    /* Get the view matrix from the SimpleRotator object. */
+    let viewMatrix = spaceball.getViewMatrix();
+
+    /* Set the values of the Perspective projection transformation */
+    let rotateToPointZero = m4.axisRotation([0.707, 0.707, 0], 0.7);
+    let translateToPointZero = m4.translation(0, 0, -5);
+
+    let matAccum0 = m4.multiply(rotateToPointZero, viewMatrix);
+    let matAccum1 = m4.multiply(translateToPointZero, matAccum0);
+
     // Left eye
     stereoCamera.ApplyLeftFrustum();
     gl.colorMask(true, false, false, true); // Only draw red channel
-    renderScene(stereoCamera);
+    
+
+    let projection = stereoCamera.projection;
+    let modelView = stereoCamera.modelView;
+
+    /* Multiply the projection matrix times the modelview matrix to give the
+       combined transformation matrix, and send that to the shader program. */
+    let modelViewProjection = m4.multiply(projection, m4.multiply(modelView, matAccum1));
+
+    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
+    settingUpLightingScene(modelViewProjection);
+    surface.Draw();
 
     // Clear depth buffer to prepare for right eye rendering
     gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -239,45 +230,32 @@ function draw() {
     // Right eye
     stereoCamera.ApplyRightFrustum();
     gl.colorMask(false, true, true, true); // Only draw green and blue channels
-    renderScene(stereoCamera);
+
+    projection = stereoCamera.projection;
+    modelView = stereoCamera.modelView;
+
+
+    /* Multiply the projection matrix times the modelview matrix to give the
+       combined transformation matrix, and send that to the shader program. */
+    modelViewProjection = m4.multiply(projection, m4.multiply(modelView, matAccum1));
+
+    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
+    settingUpLightingScene(modelViewProjection);
+    surface.Draw();
 
     gl.colorMask(true, true, true, true); // Restore color mask to default
 }
 
-
-function renderScene(camera) {
-    let projection = camera.projection;
-    let modelView = camera.modelView;
-
-    /* Get the view matrix from the SimpleRotator object. */
-    let viewMatrix = spaceball.getViewMatrix();
-
-    /* Set the values of the Perspective projection transformation */
-    let rotateToPointZero = m4.axisRotation([0.707, 0.707, 0], 0.7);
-    let translateToPointZero = m4.translation(0, 0, -10);
-
-    let matAccum0 = m4.multiply(rotateToPointZero, viewMatrix);
-    let matAccum1 = m4.multiply(translateToPointZero, matAccum0);
-
-    /* Multiply the projection matrix times the modelview matrix to give the
-       combined transformation matrix, and send that to the shader program. */
-    let modelViewProjection = m4.multiply(projection, matAccum1);
-
-    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
-
+function settingUpLightingScene(modelViewProj){
     let modelviewInv = new Float32Array(16);
     let normalmatrix = new Float32Array(16);
-    mat4Invert(modelViewProjection, modelviewInv);
+    mat4Invert(modelViewProj, modelviewInv);
     mat4Transpose(modelviewInv, normalmatrix);
 
     gl.uniformMatrix4fv(shProgram.iNormalMatrix, false, normalmatrix);
 
     gl.uniform3fv(shProgram.lightPos, [lightX, lightY, lightZ]);
-
-    surface.Draw();
 }
-
-
 
 // Normal Facet Average
 

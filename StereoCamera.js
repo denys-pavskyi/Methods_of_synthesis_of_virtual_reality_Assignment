@@ -50,8 +50,11 @@ class StereoCamera {
         const left = -c * this.mNearClippingDistance / this.mConvergence;
         const right = b * this.mNearClippingDistance / this.mConvergence;
 
+        // Set the Projection Matrix
         this.projection = m4.frustum(left, right, bottom, top,
             this.mNearClippingDistance, this.mFarClippingDistance);
+        
+        // Set modelView of camera
         this.modelView = m4.translation(-this.mEyeSeparation / 2, 0.0, 0.0);
         
     }

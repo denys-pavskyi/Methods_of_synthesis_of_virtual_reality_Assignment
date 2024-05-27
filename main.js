@@ -20,11 +20,11 @@ let lightX, lightY, lightZ;
 
 // StereoCamera settings
 let stereoCamera; // Holds the instance of the StereoCamera class for managing stereo (3D) rendering setup
-let convergence = 2000.0; // Convergence distance: the point in space where the two eyes' views converge
-let eyeSeparation = 70.0; // Eye separation (mm)
-let fov = 45.0; // Field of View (in degrees)
-let nearClippingDistance = 10.0; // Near clipping distance: the closest distance from the camera at which objects are rendered
-let farClippingDistance = 20000.0; // Far clipping distance: the furthest distance from the camera at which objects are rendered
+let convergence; // Convergence distance: the point in space where the two eyes' views converge
+let eyeSeparation; // Eye separation
+let fov; // Field of View (in degrees)
+let nearClippingDistance; // Near clipping distance: the closest distance from the camera at which objects are rendered
+let farClippingDistance = 20.0; // Far clipping distance: the furthest distance from the camera at which objects are rendered
 
 function initStereoCamera() {
     stereoCamera = new StereoCamera(

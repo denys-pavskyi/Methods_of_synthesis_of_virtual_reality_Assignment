@@ -17,7 +17,6 @@ let rMax = 1.5; // Maximum r value
 let lightX, lightY, lightZ;
 
 
-
 // StereoCamera settings
 let stereoCamera; // Holds the instance of the StereoCamera class for managing stereo (3D) rendering setup
 let convergence; // Convergence distance: the point in space where the two eyes' views converge
@@ -166,6 +165,14 @@ function Model(name) {
         
         gl.drawArrays(gl.TRIANGLES, 0, this.count);
     }
+
+    this.DrawVisualDetails = function () {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribVertex);
+   
+        gl.drawArrays(gl.LINES, 0, this.count);
+    }
 }
 
 
@@ -182,6 +189,9 @@ function ShaderProgram(name, program) {
     this.iNormalMatrix = -1;
     this.lightPos = -1;
 
+    this.iColor = -1;
+    this.iUseColor = -1;
+
     this.Use = function() {
         gl.useProgram(this.prog);
     }
@@ -192,6 +202,7 @@ function ShaderProgram(name, program) {
 function draw() { 
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.uniform1f(shProgram.iUseColor, false);
 
     /* Set up the stereo camera system */
     initStereoCamera();
@@ -222,7 +233,10 @@ function draw() {
 
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
     settingUpLightingScene(modelViewProjection);
+
     surface.Draw();
+
+    drawMesh();
 
     // Clear depth buffer to prepare for right eye rendering
     gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -243,6 +257,7 @@ function draw() {
     settingUpLightingScene(modelViewProjection);
     surface.Draw();
 
+    drawMesh();
     gl.colorMask(true, true, true, true); // Restore color mask to default
 }
 
@@ -255,6 +270,14 @@ function settingUpLightingScene(modelViewProj){
     gl.uniformMatrix4fv(shProgram.iNormalMatrix, false, normalmatrix);
 
     gl.uniform3fv(shProgram.lightPos, [lightX, lightY, lightZ]);
+}
+
+function drawMesh(){
+    gl.colorMask(true, true, true, true); // Restore color mask to default
+    gl.uniform4fv(shProgram.iColor, [0.01, 0.05, 0.45, 1]);
+    gl.uniform1f(shProgram.iUseColor, true);
+    surface.DrawVisualDetails();
+    gl.uniform1f(shProgram.iUseColor, false);
 }
 
 // Normal Facet Average
@@ -390,6 +413,10 @@ function initGL() {
     shProgram.iAttribNormal = gl.getAttribLocation(prog, "normal");
     shProgram.iNormalMatrix = gl.getUniformLocation(prog, "NormalMatrix");
     shProgram.lightPos = gl.getUniformLocation(prog, "lightPos");
+
+    shProgram.iColor = gl.getUniformLocation(prog, "color");
+    shProgram.iUseColor = gl.getUniformLocation(prog, "useColor");
+
     surface = new Model('Surface');
     surface.BufferData(CreateSurfaceData());
     surface.NormalBufferData(normals);

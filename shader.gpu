@@ -9,6 +9,7 @@ uniform mat4 ModelViewProjectionMatrix;
 uniform mat4 NormalMatrix;
 uniform vec3 lightPos;
 
+
 void main() {
     gl_Position = ModelViewProjectionMatrix * vec4(vertex, 1.0);
     fragPos = vec3(ModelViewProjectionMatrix * vec4(vertex, 1.0));
@@ -29,26 +30,33 @@ varying vec3 normalInterp;
 varying vec3 fragPos;
 varying vec3 lightDir;
 
+uniform bool useColor;
+uniform vec4 color;
+
 void main() {
-    vec3 ambientColor = vec3(0.1, 0.1, 0.05);
-    vec3 diffuseColor = vec3(1.0, 1.0, 0.5);
-    vec3 specularColor = vec3(0.0, 0.0, 0.0);
 
-    vec3 normal = normalize(normalInterp);
-    vec3 lightDirNorm = normalize(lightDir);
-    vec3 viewDir = normalize(-fragPos);
+    if(useColor){
+        gl_FragColor = color;
+    }else{
+        vec3 ambientColor = vec3(0.1, 0.1, 0.05);
+        vec3 diffuseColor = vec3(1.0, 1.0, 0.5);
+        vec3 specularColor = vec3(0.0, 0.0, 0.0);
 
-    float lambertian = max(dot(normal, lightDirNorm), 0.0);
-    float specular = 0.0;
+        vec3 normal = normalize(normalInterp);
+        vec3 lightDirNorm = normalize(lightDir);
+        vec3 viewDir = normalize(-fragPos);
 
-    if (lambertian > 0.0) {
-        vec3 reflectDir = reflect(-lightDirNorm, normal);
-        float specAngle = max(dot(reflectDir, viewDir), 0.0);
-        specular = pow(specAngle, 32.0); 
+        float lambertian = max(dot(normal, lightDirNorm), 0.0);
+        float specular = 0.0;
+
+        if (lambertian > 0.0) {
+            vec3 reflectDir = reflect(-lightDirNorm, normal);
+            float specAngle = max(dot(reflectDir, viewDir), 0.0);
+            specular = pow(specAngle, 32.0); 
+        }
+
+        vec3 lighting = ambientColor + (lambertian * diffuseColor) + (specular * specularColor);
+        gl_FragColor = vec4(lighting, 1.0);
     }
-
-    vec3 lighting = ambientColor + (lambertian * diffuseColor) + (specular * specularColor);
-    gl_FragColor = vec4(lighting, 1.0);
 }
-
 `;

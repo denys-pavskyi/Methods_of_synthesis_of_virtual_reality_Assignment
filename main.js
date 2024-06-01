@@ -25,6 +25,10 @@ let fov; // Field of View (in degrees)
 let nearClippingDistance; // Near clipping distance: the closest distance from the camera at which objects are rendered
 let farClippingDistance = 20.0; // Far clipping distance: the furthest distance from the camera at which objects are rendered
 
+
+let webCam;
+
+
 function initStereoCamera() {
     stereoCamera = new StereoCamera(
         convergence,
@@ -462,6 +466,7 @@ function createProgram(gl, vShader, fShader) {
  */
 export function init() {
     let canvas;
+    webCam = initializeWebCamera();
     try {
         canvas = document.getElementById("webglcanvas");
         gl = canvas.getContext("webgl");
@@ -497,6 +502,17 @@ function mat4Transpose(a, transposed) {
             transposed[t++] = a[j * 4 + i];
         }
     }
+}
+
+function initializeWebCamera(){
+    const webCam = document.createElement('video');
+    webCam.setAttribute('autoplay', true);
+    navigator.getUserMedia({ video: true, audio: false }, function (stream) {
+        webCam.srcObject = stream;
+    }, function (e) {
+        console.error('Rejected!', e);
+    });
+    return webCam;
 }
 
 function mat4Invert(m, inverse) {

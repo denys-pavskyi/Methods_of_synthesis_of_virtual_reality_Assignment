@@ -26,8 +26,8 @@ let nearClippingDistance; // Near clipping distance: the closest distance from t
 let farClippingDistance = 20.0; // Far clipping distance: the furthest distance from the camera at which objects are rendered
 
 
-let webCam;
-
+let webCamElement;
+let webCamModel;
 
 function initStereoCamera() {
     stereoCamera = new StereoCamera(
@@ -179,6 +179,39 @@ function Model(name) {
     }
 }
 
+
+function WebCameraImageModel(name){
+    
+    this.iVertexBuffer = gl.createBuffer();
+    this.iTextureBuffer = gl.createBuffer();
+    this.texture = gl.createTexture();
+    this.count = 0;
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    
+
+    this.BufferData = function(vertices) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
+        this.count = vertices.length / 3;
+
+    }
+
+    this.TextureBufferData = function (normals) {
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iTextureBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STREAM_DRAW);
+
+        this.countText = normals.length / 2;
+    }
+
+
+
+}
 
 // Constructor
 function ShaderProgram(name, program) {
@@ -426,6 +459,11 @@ function initGL() {
     surface.NormalBufferData(normals);
 
 
+    // WebCam model setup
+    webCamModel = new WebCameraImageModel('WebCamera');
+    webcamModel.BufferData([-1, -1, 0, 1, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 1, 0])
+    webcamModel.TextureBufferData([1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0])
+
     gl.enable(gl.DEPTH_TEST);
 }
 
@@ -466,7 +504,7 @@ function createProgram(gl, vShader, fShader) {
  */
 export function init() {
     let canvas;
-    webCam = initializeWebCamera();
+    webCamElement = initializeWebCamera();
     try {
         canvas = document.getElementById("webglcanvas");
         gl = canvas.getContext("webgl");

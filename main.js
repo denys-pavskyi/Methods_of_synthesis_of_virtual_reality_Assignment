@@ -216,6 +216,9 @@ function WebCameraImageModel(name){
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexTextureBuffer);
         gl.vertexAttribPointer(shProgram.iAttribVertexTexture, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iAttribVertexTexture);
+        
+        gl.uniform1i(shProgram.uTexture, 0);
+
 
         gl.drawArrays(gl.TRIANGLES, 0, this.count);
     }
@@ -241,6 +244,7 @@ function ShaderProgram(name, program) {
 
     // Get attribute location for texture coordinates
     this.aTexCoord = -1;
+    this.uTexture = -1;
 
     this.iUseTexture = -1;
 
@@ -472,6 +476,8 @@ function initGL() {
 
     // Get attribute location for texture coordinates
     shProgram.aTexCoord = gl.getAttribLocation(prog, "a_texcoord");
+    shProgram.uTexture = gl.getUniformLocation(prog, "u_texture");
+
 
     surface = new Model('Surface');
     surface.BufferData(CreateSurfaceData());

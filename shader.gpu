@@ -9,6 +9,7 @@ uniform mat4 ModelViewProjectionMatrix;
 uniform mat4 NormalMatrix;
 uniform vec3 lightPos;
 
+attribute vec2 a_texcoord;
 
 void main() {
     gl_Position = ModelViewProjectionMatrix * vec4(vertex, 1.0);
@@ -31,6 +32,7 @@ varying vec3 fragPos;
 varying vec3 lightDir;
 
 uniform bool useColor;
+uniform bool useTexture;
 uniform vec4 color;
 
 void main() {

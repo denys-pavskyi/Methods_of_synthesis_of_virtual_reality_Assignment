@@ -188,11 +188,11 @@ function WebCameraImageModel(name){
     this.texture = gl.createTexture();
     this.count = 0;
 
-    // gl.bindTexture(gl.TEXTURE_2D, texture);
-    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     
 
     this.BufferData = function(vertices) {
@@ -208,16 +208,17 @@ function WebCameraImageModel(name){
 
     }
 
-    // this.Draw() = function () {
-    //     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
-    //     gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
-    //     gl.enableVertexAttribArray(shProgram.iAttribVertex);
-    //     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexTextureBuffer);
-    //     gl.vertexAttribPointer(shProgram.iAttribVertexTexture, 2, gl.FLOAT, false, 0, 0);
-    //     gl.enableVertexAttribArray(shProgram.iAttribVertexTexture);
+    this.Draw = function () {
 
-    //     gl.drawArrays(gl.TRIANGLES, 0, this.count);
-    // }
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribVertex);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexTextureBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribVertexTexture, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribVertexTexture);
+
+        gl.drawArrays(gl.TRIANGLES, 0, this.count);
+    }
 
 
 }
@@ -237,6 +238,11 @@ function ShaderProgram(name, program) {
 
     this.iColor = -1;
     this.iUseColor = -1;
+
+    // Get attribute location for texture coordinates
+    this.aTexCoord = -1;
+
+    this.iUseTexture = -1;
 
     this.Use = function() {
         gl.useProgram(this.prog);
@@ -462,6 +468,10 @@ function initGL() {
 
     shProgram.iColor = gl.getUniformLocation(prog, "color");
     shProgram.iUseColor = gl.getUniformLocation(prog, "useColor");
+    shProgram.iUseTexture = gl.getUniformLocation(prog, "useTexture");
+
+    // Get attribute location for texture coordinates
+    shProgram.aTexCoord = gl.getAttribLocation(prog, "a_texcoord");
 
     surface = new Model('Surface');
     surface.BufferData(CreateSurfaceData());
@@ -470,7 +480,7 @@ function initGL() {
 
     // WebCam model setup
     webCamModel = new WebCameraImageModel('WebCamera');
-    webcamModel.BufferData([-1, -1, 0, 1, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 1, 0])
+    webCamModel.BufferData([-1, -1, 0, 1, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 1, 0])
     webCamModel.TextureBufferData([1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0])
 
     gl.enable(gl.DEPTH_TEST);

@@ -198,17 +198,25 @@ function WebCameraImageModel(name){
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
         this.count = vertices.length / 3;
-
     }
 
-    this.TextureBufferData = function (normals) {
+    this.TextureBufferData = function (vertices) {
         
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iTextureBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STREAM_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
 
-        this.countText = normals.length / 2;
     }
 
+    this.Draw() = function () {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribVertex);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexTextureBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribVertexTexture, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribVertexTexture);
+
+        gl.drawArrays(gl.TRIANGLES, 0, this.count);
+    }
 
 
 }

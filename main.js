@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 'use strict';
 
 
@@ -24,6 +25,10 @@ let eyeSeparation; // Eye separation
 let fov; // Field of View (in degrees)
 let nearClippingDistance; // Near clipping distance: the closest distance from the camera at which objects are rendered
 let farClippingDistance = 20.0; // Far clipping distance: the furthest distance from the camera at which objects are rendered
+
+
+let webCamElement;
+let webCamModel;
 
 function initStereoCamera() {
     stereoCamera = new StereoCamera(
@@ -176,6 +181,51 @@ function Model(name) {
 }
 
 
+function WebCameraImageModel(name){
+    this.name = name;
+    this.iVertexBuffer = gl.createBuffer();
+    this.iTextureBuffer = gl.createBuffer();
+    this.texture = gl.createTexture();
+    this.count = 0;
+
+    gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    
+
+    this.BufferData = function(vertices) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
+        this.count = vertices.length / 3;
+    }
+
+    this.TextureBufferData = function (vertices) {
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iTextureBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
+
+    }
+
+    this.Draw = function () {
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribVertex);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iTextureBuffer);
+        gl.vertexAttribPointer(shProgram.aTexCoord, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.aTexCoord);
+
+        //gl.uniform1i(shProgram.uTexture, 0);
+
+
+        gl.drawArrays(gl.TRIANGLES, 0, this.count);
+    }
+
+
+}
+
 // Constructor
 function ShaderProgram(name, program) {
 
@@ -192,6 +242,12 @@ function ShaderProgram(name, program) {
     this.iColor = -1;
     this.iUseColor = -1;
 
+    // Get attribute location for texture coordinates
+    this.aTexCoord = -1;
+    this.uTexture = -1;
+
+    this.iUseTexture = -1;
+
     this.Use = function() {
         gl.useProgram(this.prog);
     }
@@ -199,7 +255,7 @@ function ShaderProgram(name, program) {
 
 
 // Draws a Surface of Revolution with Damping Circular Waves, along with a set of coordinate axes.
-function draw() { 
+function draw(animate = false) { 
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.uniform1f(shProgram.iUseColor, false);
@@ -219,18 +275,32 @@ function draw() {
     let matAccum0 = m4.multiply(rotateToPointZero, viewMatrix);
     let matAccum1 = m4.multiply(translateToPointZero, matAccum0);
 
+    // Web Camera texture
+    gl.uniform1f(shProgram.iUseTexture, true);
+    gl.bindTexture(gl.TEXTURE_2D, webCamModel.texture);
+
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        webCamElement
+    );
+    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, m4.identity());
+    webCamModel.Draw();
+    gl.clear(gl.DEPTH_BUFFER_BIT)
+    gl.uniform1f(shProgram.iUseTexture, false);
+
     // Left eye
     stereoCamera.ApplyLeftFrustum();
     gl.colorMask(true, false, false, true); // Only draw red channel
     
-
     let projection = stereoCamera.projection;
     let modelView = stereoCamera.modelView;
-
     /* Multiply the projection matrix times the modelview matrix to give the
        combined transformation matrix, and send that to the shader program. */
     let modelViewProjection = m4.multiply(projection, m4.multiply(modelView, matAccum1));
-
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
     settingUpLightingScene(modelViewProjection);
 
@@ -248,7 +318,6 @@ function draw() {
     projection = stereoCamera.projection;
     modelView = stereoCamera.modelView;
 
-
     /* Multiply the projection matrix times the modelview matrix to give the
        combined transformation matrix, and send that to the shader program. */
     modelViewProjection = m4.multiply(projection, m4.multiply(modelView, matAccum1));
@@ -259,6 +328,10 @@ function draw() {
 
     drawMesh();
     gl.colorMask(true, true, true, true); // Restore color mask to default
+
+    if (animate) {
+        window.requestAnimationFrame(()=>draw(true));
+    }
 }
 
 function settingUpLightingScene(modelViewProj){
@@ -416,11 +489,22 @@ function initGL() {
 
     shProgram.iColor = gl.getUniformLocation(prog, "color");
     shProgram.iUseColor = gl.getUniformLocation(prog, "useColor");
+    shProgram.iUseTexture = gl.getUniformLocation(prog, "useTexture");
+
+    // Get attribute location for texture coordinates
+    shProgram.aTexCoord = gl.getAttribLocation(prog, "a_texcoord");
+    shProgram.uTexture = gl.getUniformLocation(prog, "u_texture");
+
 
     surface = new Model('Surface');
     surface.BufferData(CreateSurfaceData());
     surface.NormalBufferData(normals);
 
+
+    // WebCam model setup
+    webCamModel = new WebCameraImageModel('WebCamera');
+    webCamModel.BufferData([-1, -1, 0, 1, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 1, 0])
+    webCamModel.TextureBufferData([1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0])
 
     gl.enable(gl.DEPTH_TEST);
 }
@@ -462,6 +546,7 @@ function createProgram(gl, vShader, fShader) {
  */
 export function init() {
     let canvas;
+    webCamElement = initializeWebCamera();
     try {
         canvas = document.getElementById("webglcanvas");
         gl = canvas.getContext("webgl");
@@ -471,7 +556,7 @@ export function init() {
     }
     catch (e) {
         document.getElementById("canvas-holder").innerHTML =
-            "<p>Sorry, could not get a WebGL graphics context.</p>";
+            "<p>Sorry, could not get a WebGL graphics context. </p>" + e;
         return;
     }
     try {
@@ -485,7 +570,7 @@ export function init() {
 
     spaceball = new TrackballRotator(canvas, draw, 0);
     initStereoCamera();
-    draw();
+    draw(true);
 }
 
 
@@ -497,6 +582,17 @@ function mat4Transpose(a, transposed) {
             transposed[t++] = a[j * 4 + i];
         }
     }
+}
+
+function initializeWebCamera(){
+    const webCam = document.createElement('video');
+    webCam.setAttribute('autoplay', true);
+    navigator.getUserMedia({ video: true, audio: false }, function (stream) {
+        webCam.srcObject = stream;
+    }, function (e) {
+        console.error('Rejected!', e);
+    });
+    return webCam;
 }
 
 function mat4Invert(m, inverse) {

@@ -9,12 +9,15 @@ uniform mat4 ModelViewProjectionMatrix;
 uniform mat4 NormalMatrix;
 uniform vec3 lightPos;
 
+varying vec2 v_texCoord;
+attribute vec2 a_texcoord;
 
 void main() {
     gl_Position = ModelViewProjectionMatrix * vec4(vertex, 1.0);
     fragPos = vec3(ModelViewProjectionMatrix * vec4(vertex, 1.0));
     normalInterp = normalize(vec3(NormalMatrix * vec4(normal, 0.0)));
     lightDir = normalize(lightPos - fragPos);
+    v_texCoord = a_texcoord;
 }
 `;
 
@@ -31,34 +34,44 @@ varying vec3 fragPos;
 varying vec3 lightDir;
 
 uniform bool useColor;
+uniform bool useTexture;
 uniform vec4 color;
+
+uniform sampler2D u_texture;
+varying vec2 v_texCoord;
 
 void main() {
     
-
-    vec3 ambientColor = vec3(0.1, 0.1, 0.05);
-    vec3 diffuseColor = vec3(1.0, 1.0, 0.5);
-    vec3 specularColor = vec3(0.0, 0.0, 0.0);
-
-    vec3 normal = normalize(normalInterp);
-    vec3 lightDirNorm = normalize(lightDir);
-    vec3 viewDir = normalize(-fragPos);
-
-    float lambertian = max(dot(normal, lightDirNorm), 0.0);
-    float specular = 0.0;
-
-    if (lambertian > 0.0) {
-        vec3 reflectDir = reflect(-lightDirNorm, normal);
-        float specAngle = max(dot(reflectDir, viewDir), 0.0);
-        specular = pow(specAngle, 32.0); 
-    }
-
-    vec3 lighting = ambientColor + (lambertian * diffuseColor) + (specular * specularColor);
-    
-    if(useColor){
-        gl_FragColor = color * vec4(lighting, 1.0);
+    if(useTexture){
+        vec4 texturedColor = texture2D(u_texture, v_texCoord);
+        gl_FragColor = texturedColor;
     }else{
-        gl_FragColor = vec4(lighting, 1.0);
+        vec3 ambientColor = vec3(0.1, 0.1, 0.05);
+        vec3 diffuseColor = vec3(1.0, 1.0, 0.5);
+        vec3 specularColor = vec3(0.0, 0.0, 0.0);
+
+        vec3 normal = normalize(normalInterp);
+        vec3 lightDirNorm = normalize(lightDir);
+        vec3 viewDir = normalize(-fragPos);
+
+        float lambertian = max(dot(normal, lightDirNorm), 0.0);
+        float specular = 0.0;
+
+        if (lambertian > 0.0) {
+            vec3 reflectDir = reflect(-lightDirNorm, normal);
+            float specAngle = max(dot(reflectDir, viewDir), 0.0);
+            specular = pow(specAngle, 32.0); 
+        }
+
+        vec3 lighting = ambientColor + (lambertian * diffuseColor) + (specular * specularColor);
+        
+        if(useColor){
+            gl_FragColor = color * vec4(lighting, 1.0);
+        }else{
+            gl_FragColor = vec4(lighting, 1.0);
+        }
     }
+
+    
 }
 `;

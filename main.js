@@ -292,10 +292,11 @@ function draw(animate = false) {
     gl.clear(gl.DEPTH_BUFFER_BIT)
     gl.uniform1f(shProgram.iUseTexture, false);
 
+
+    
     // Left eye
     stereoCamera.ApplyLeftFrustum();
     gl.colorMask(true, false, false, true); // Only draw red channel
-    
     let projection = stereoCamera.projection;
     let modelView = stereoCamera.modelView;
     /* Multiply the projection matrix times the modelview matrix to give the
@@ -303,29 +304,24 @@ function draw(animate = false) {
     let modelViewProjection = m4.multiply(projection, m4.multiply(modelView, matAccum1));
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
     settingUpLightingScene(modelViewProjection);
-
     surface.Draw();
-
     drawMesh();
-
     // Clear depth buffer to prepare for right eye rendering
     gl.clear(gl.DEPTH_BUFFER_BIT);
+
+
 
     // Right eye
     stereoCamera.ApplyRightFrustum();
     gl.colorMask(false, true, true, true); // Only draw green and blue channels
-
     projection = stereoCamera.projection;
     modelView = stereoCamera.modelView;
-
     /* Multiply the projection matrix times the modelview matrix to give the
        combined transformation matrix, and send that to the shader program. */
     modelViewProjection = m4.multiply(projection, m4.multiply(modelView, matAccum1));
-
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
     settingUpLightingScene(modelViewProjection);
     surface.Draw();
-
     drawMesh();
     gl.colorMask(true, true, true, true); // Restore color mask to default
 

@@ -30,6 +30,9 @@ let farClippingDistance = 20.0; // Far clipping distance: the furthest distance 
 let webCamElement;
 let webCamModel;
 
+
+let sphere;
+
 function initStereoCamera() {
     stereoCamera = new StereoCamera(
         convergence,
@@ -137,7 +140,7 @@ updateValue('y_light');
 updateValue('z_light');
 
 
-//Constructor
+//Constructors
 
 function Model(name) {
     this.name = name;
@@ -217,13 +220,112 @@ function WebCameraImageModel(name){
         gl.vertexAttribPointer(shProgram.aTexCoord, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.aTexCoord);
 
-        //gl.uniform1i(shProgram.uTexture, 0);
+        gl.uniform1i(shProgram.uTexture, 0);
 
 
         gl.drawArrays(gl.TRIANGLES, 0, this.count);
     }
 
 
+}
+
+function Sphere(name, radius, latitudeBands, longitudeBands) {
+    this.name = name;
+    this.radius = radius;
+    this.latitudeBands = latitudeBands;
+    this.longitudeBands = longitudeBands;
+
+    this.vertexPositionData = [];
+    this.normalData = [];
+    this.indexData = [];
+    this.colorData = [];
+
+    this.generateSphereData = function() {
+        for (let latNumber = 0; latNumber <= this.latitudeBands; latNumber++) {
+            const theta = latNumber * Math.PI / this.latitudeBands;
+            const sinTheta = Math.sin(theta);
+            const cosTheta = Math.cos(theta);
+
+            for (let longNumber = 0; longNumber <= this.longitudeBands; longNumber++) {
+                const phi = longNumber * 2 * Math.PI / this.longitudeBands;
+                const sinPhi = Math.sin(phi);
+                const cosPhi = Math.cos(phi);
+
+                const x = cosPhi * sinTheta;
+                const y = cosTheta;
+                const z = sinPhi * sinTheta;
+
+                this.normalData.push(x);
+                this.normalData.push(y);
+                this.normalData.push(z);
+                this.vertexPositionData.push(this.radius * x);
+                this.vertexPositionData.push(this.radius * y);
+                this.vertexPositionData.push(this.radius * z);
+                this.colorData.push(0.0, 1.0, 0.0, 1.0);
+            }
+        }
+
+        for (let latNumber = 0; latNumber < this.latitudeBands; latNumber++) {
+            for (let longNumber = 0; longNumber < this.longitudeBands; longNumber++) {
+                const first = (latNumber * (this.longitudeBands + 1)) + longNumber;
+                const second = first + this.longitudeBands + 1;
+                this.indexData.push(first);
+                this.indexData.push(second);
+                this.indexData.push(first + 1);
+
+                this.indexData.push(second);
+                this.indexData.push(second + 1);
+                this.indexData.push(first + 1);
+            }
+        }
+    }
+
+    this.initializeBuffers = function() {
+        this.vertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexPositionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertexPositionData), gl.STATIC_DRAW);
+        this.vertexPositionBuffer.itemSize = 3;
+        this.vertexPositionBuffer.numItems = this.vertexPositionData.length / 3;
+
+        this.normalBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.normalData), gl.STATIC_DRAW);
+        this.normalBuffer.itemSize = 3;
+        this.normalBuffer.numItems = this.normalData.length / 3;
+
+        this.colorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colorData), gl.STATIC_DRAW);
+        this.colorBuffer.itemSize = 4;
+        this.colorBuffer.numItems = this.colorData.length / 4;
+
+        this.indexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indexData), gl.STATIC_DRAW);
+        this.indexBuffer.itemSize = 1;
+        this.indexBuffer.numItems = this.indexData.length;
+    }
+
+    this.draw = function() {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexPositionBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribVertex, this.vertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribVertex);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribNormal, this.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribNormal);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+        gl.vertexAttribPointer(shProgram.iColor, this.colorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iColor);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        gl.drawElements(gl.TRIANGLES, this.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    }
+
+    // Generate sphere data and initialize buffers
+    this.generateSphereData();
+    this.initializeBuffers();
 }
 
 // Constructor
@@ -293,7 +395,7 @@ function draw(animate = false) {
     gl.uniform1f(shProgram.iUseTexture, false);
 
 
-    
+
     // Left eye
     stereoCamera.ApplyLeftFrustum();
     gl.colorMask(true, false, false, true); // Only draw red channel
@@ -566,6 +668,7 @@ export function init() {
 
     spaceball = new TrackballRotator(canvas, draw, 0);
     initStereoCamera();
+    sphere = new Sphere('Sphere', 0.5, 30, 30);
     draw(true);
 }
 

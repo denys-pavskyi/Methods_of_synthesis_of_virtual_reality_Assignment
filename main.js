@@ -36,6 +36,10 @@ let rotationPosition = 0;
 let autoRotate = true; 
 let sphereRadius = 0.6;
 
+let applyFilter;
+let audio, audioSrc, biquadFilter, panner;
+let context;
+
 function initStereoCamera() {
     stereoCamera = new StereoCamera(
         convergence,
@@ -406,6 +410,12 @@ function draw(animate = false) {
     const radians = angle * Math.PI / 180;
     sphere.generateSphereData(Math.cos(radians) * 2, 0, Math.sin(radians) * 2, sphereRadius);
     sphere.Draw(modelViewProjection, radians);
+
+    if (panner) {
+        //panner.setPosition(x, 0, z);
+        panner.setPosition(-3, 0, -5);
+    }
+
     gl.uniform1f(shProgram.iUseColor, false);
 
     if (animate) {
@@ -663,6 +673,7 @@ export function init() {
         autoRotate = event.target.checked;
         draw();
     });
+    initAudio();
 
     draw(true);
 }
@@ -687,6 +698,42 @@ function initializeWebCamera(){
         console.error('Rejected!', e);
     });
     return webCam;
+}
+
+function initAudio() {
+    audio = document.getElementById('audio');
+    
+    audio.addEventListener('play', () => {
+        if (!context) {
+            context = new AudioContext();
+            audioSrc = context.createMediaElementSource(audio);
+            panner = context.createPanner();
+            biquadFilter = context.createBiquadFilter();
+
+            audioSrc.connect(panner);
+            panner.connect(biquadFilter);
+            biquadFilter.connect(context.destination);
+
+            biquadFilter.type = 'highpass';
+            biquadFilter.Q.value = 5;
+            biquadFilter.frequency.value = 1000;
+
+            context.resume();
+        }
+    });
+
+    audio.addEventListener('pause', () => context.resume());
+    applyFilter = document.getElementById('check-filter');
+    applyFilter.addEventListener('change', () => {
+        if (applyFilter.checked) {
+            panner.disconnect();
+            panner.connect(biquadFilter);
+            biquadFilter.connect(context.destination);
+        } else {
+            panner.disconnect();
+            panner.connect(context.destination);
+        }
+    });
 }
 
 function mat4Invert(m, inverse) {

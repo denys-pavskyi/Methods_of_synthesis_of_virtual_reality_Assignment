@@ -282,6 +282,11 @@ function CreateSphereSurface(centerX, centerY, centerZ, r) {
         lat = -Math.PI * 0.5;
         lon += 0.05;
     }
+
+    if (panner) {
+        panner.setPosition(centerX, centerY, centerZ);
+    }
+
     return sphereVertexList;
 }
 
@@ -410,11 +415,6 @@ function draw(animate = false) {
     const radians = angle * Math.PI / 180;
     sphere.generateSphereData(Math.cos(radians) * 2, 0, Math.sin(radians) * 2, sphereRadius);
     sphere.Draw(modelViewProjection, radians);
-
-    if (panner) {
-        //panner.setPosition(x, 0, z);
-        panner.setPosition(-3, 0, -5);
-    }
 
     gl.uniform1f(shProgram.iUseColor, false);
 

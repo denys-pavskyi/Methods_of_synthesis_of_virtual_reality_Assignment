@@ -714,9 +714,10 @@ function initAudio() {
             panner.connect(biquadFilter);
             biquadFilter.connect(context.destination);
 
-            biquadFilter.type = 'highpass';
-            biquadFilter.Q.value = 5;
-            biquadFilter.frequency.value = 1000;
+            // High-shelf filter (variant 19)
+            biquadFilter.type = 'highshelf';
+            biquadFilter.frequency.setValueAtTime(2500, context.currentTime); // for sound with frequency more then
+            biquadFilter.gain.setValueAtTime(-35, context.currentTime); // -N amount of dB
 
             context.resume();
         }

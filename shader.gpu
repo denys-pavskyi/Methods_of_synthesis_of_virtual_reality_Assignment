@@ -18,6 +18,7 @@ void main() {
     normalInterp = normalize(vec3(NormalMatrix * vec4(normal, 0.0)));
     lightDir = normalize(lightPos - fragPos);
     v_texCoord = a_texcoord;
+    gl_PointSize = 50.0;
 }
 `;
 

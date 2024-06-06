@@ -30,6 +30,16 @@ let farClippingDistance = 20.0; // Far clipping distance: the furthest distance 
 let webCamElement;
 let webCamModel;
 
+
+let sphere;
+let rotationPosition = 0;
+let autoRotate = true; 
+let sphereRadius = 0.6;
+
+let applyFilter;
+let audio, audioSrc, biquadFilter, panner;
+let context;
+
 function initStereoCamera() {
     stereoCamera = new StereoCamera(
         convergence,
@@ -137,7 +147,7 @@ updateValue('y_light');
 updateValue('z_light');
 
 
-//Constructor
+//Constructors
 
 function Model(name) {
     this.name = name;
@@ -217,13 +227,74 @@ function WebCameraImageModel(name){
         gl.vertexAttribPointer(shProgram.aTexCoord, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.aTexCoord);
 
-        //gl.uniform1i(shProgram.uTexture, 0);
+        gl.uniform1i(shProgram.uTexture, 0);
 
 
         gl.drawArrays(gl.TRIANGLES, 0, this.count);
     }
 
 
+}
+
+function Sphere(name) {
+    this.iVertexBuffer = gl.createBuffer();
+    this.name = name;
+    this.count = 0;
+
+    this.BufferData = function(vertices) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
+        this.count = vertices.length / 3;
+    }
+
+    this.generateSphereData = function(centerX, centerY, centerZ, r) {
+        const vertexPositionData = CreateSphereSurface(centerX, centerY, centerZ, r);
+        this.BufferData(vertexPositionData);
+    }
+
+    this.Draw = function(projectionViewMatrix, angle) {
+        let translation = m4.translation(Math.cos(angle) * 2, 0, Math.sin(angle) * 2);
+        let modelMatrix = m4.multiply(translation, spaceball.getViewMatrix());
+        let modelViewProjection = m4.multiply(projectionViewMatrix, modelMatrix);
+
+        gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
+        gl.uniform4fv(shProgram.iColor, [0.0, 1.0, 0.0, 1.0]); 
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shProgram.iAttribVertex);
+
+        gl.drawArrays(gl.LINE_STRIP, 0, this.count);
+    }
+}
+
+function CreateSphereSurface(centerX, centerY, centerZ, r) {
+    let sphereVertexList = [];
+    let lon = -Math.PI;
+    let lat = -Math.PI * 0.5;
+    
+    while (lon < Math.PI) {
+        while (lat < Math.PI * 0.5) {
+            let v1 = sphereSurfaceData(centerX, centerY, centerZ, r, lon, lat);
+            sphereVertexList.push(v1.x, v1.y, v1.z);
+            lat += 0.1;
+        }
+        lat = -Math.PI * 0.5;
+        lon += 0.05;
+    }
+
+    if (panner) {
+        panner.setPosition(centerX, centerY, centerZ);
+    }
+
+    return sphereVertexList;
+}
+
+function sphereSurfaceData(centerX, centerY, centerZ, r, u, v) {
+    let x = centerX + r * Math.sin(u) * Math.cos(v);
+    let y = centerY + r * Math.sin(u) * Math.sin(v);
+    let z = centerZ + r * Math.cos(u);
+    return { x: x, y: y, z: z };
 }
 
 // Constructor
@@ -252,6 +323,7 @@ function ShaderProgram(name, program) {
         gl.useProgram(this.prog);
     }
 }
+
 
 
 // Draws a Surface of Revolution with Damping Circular Waves, along with a set of coordinate axes.
@@ -292,10 +364,11 @@ function draw(animate = false) {
     gl.clear(gl.DEPTH_BUFFER_BIT)
     gl.uniform1f(shProgram.iUseTexture, false);
 
+
+
     // Left eye
     stereoCamera.ApplyLeftFrustum();
     gl.colorMask(true, false, false, true); // Only draw red channel
-    
     let projection = stereoCamera.projection;
     let modelView = stereoCamera.modelView;
     /* Multiply the projection matrix times the modelview matrix to give the
@@ -303,34 +376,50 @@ function draw(animate = false) {
     let modelViewProjection = m4.multiply(projection, m4.multiply(modelView, matAccum1));
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
     settingUpLightingScene(modelViewProjection);
-
     surface.Draw();
-
     drawMesh();
-
     // Clear depth buffer to prepare for right eye rendering
     gl.clear(gl.DEPTH_BUFFER_BIT);
+
+
 
     // Right eye
     stereoCamera.ApplyRightFrustum();
     gl.colorMask(false, true, true, true); // Only draw green and blue channels
-
     projection = stereoCamera.projection;
     modelView = stereoCamera.modelView;
-
     /* Multiply the projection matrix times the modelview matrix to give the
        combined transformation matrix, and send that to the shader program. */
     modelViewProjection = m4.multiply(projection, m4.multiply(modelView, matAccum1));
-
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
     settingUpLightingScene(modelViewProjection);
     surface.Draw();
-
     drawMesh();
     gl.colorMask(true, true, true, true); // Restore color mask to default
 
+
+
+    // Animate the sphere
+    gl.uniform1f(shProgram.iUseColor, true);
+    let angle;
+    if (autoRotate) {
+        const time = Date.now() * 0.001;
+        angle = time * (360 / (2 * Math.PI)); // Convert time to degrees
+        rotationPosition = angle % 360;
+        document.getElementById('rotationSlider').value = rotationPosition;
+        document.getElementById('rotationValue').innerText = Math.floor(rotationPosition);
+    } else {
+        angle = rotationPosition;
+    }
+
+    const radians = angle * Math.PI / 180;
+    sphere.generateSphereData(Math.cos(radians) * 2, 0, Math.sin(radians) * 2, sphereRadius);
+    sphere.Draw(modelViewProjection, radians);
+
+    gl.uniform1f(shProgram.iUseColor, false);
+
     if (animate) {
-        window.requestAnimationFrame(()=>draw(true));
+        window.requestAnimationFrame(() => draw(true));
     }
 }
 
@@ -544,6 +633,7 @@ function createProgram(gl, vShader, fShader) {
 /**
  * initialization function that will be called when the page has loaded
  */
+
 export function init() {
     let canvas;
     webCamElement = initializeWebCamera();
@@ -570,6 +660,21 @@ export function init() {
 
     spaceball = new TrackballRotator(canvas, draw, 0);
     initStereoCamera();
+
+    sphere = new Sphere('Sphere');
+
+    document.getElementById('rotationSlider').addEventListener('input', (event) => {
+        rotationPosition = event.target.value;
+        document.getElementById('rotationValue').innerText = rotationPosition;
+        draw();
+    });
+
+    document.getElementById('autoRotate').addEventListener('change', (event) => {
+        autoRotate = event.target.checked;
+        draw();
+    });
+    initAudio();
+
     draw(true);
 }
 
@@ -593,6 +698,43 @@ function initializeWebCamera(){
         console.error('Rejected!', e);
     });
     return webCam;
+}
+
+function initAudio() {
+    audio = document.getElementById('audio');
+    
+    audio.addEventListener('play', () => {
+        if (!context) {
+            context = new AudioContext();
+            audioSrc = context.createMediaElementSource(audio);
+            panner = context.createPanner();
+            biquadFilter = context.createBiquadFilter();
+
+            audioSrc.connect(panner);
+            panner.connect(biquadFilter);
+            biquadFilter.connect(context.destination);
+
+            // High-shelf filter (variant 19)
+            biquadFilter.type = 'highshelf';
+            biquadFilter.frequency.setValueAtTime(2500, context.currentTime); // for sound with frequency more then
+            biquadFilter.gain.setValueAtTime(-35, context.currentTime); // -N amount of dB
+
+            context.resume();
+        }
+    });
+
+    audio.addEventListener('pause', () => context.resume());
+    applyFilter = document.getElementById('check-filter');
+    applyFilter.addEventListener('change', () => {
+        if (applyFilter.checked) {
+            panner.disconnect();
+            panner.connect(biquadFilter);
+            biquadFilter.connect(context.destination);
+        } else {
+            panner.disconnect();
+            panner.connect(context.destination);
+        }
+    });
 }
 
 function mat4Invert(m, inverse) {

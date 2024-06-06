@@ -229,18 +229,21 @@ function WebCameraImageModel(name){
 
 }
 
-function Sphere(name, radius, latitudeBands, longitudeBands) {
+function Sphere(name, radius) {
+    this.iVertexBuffer = gl.createBuffer();
     this.name = name;
     this.radius = radius;
-    this.latitudeBands = latitudeBands;
-    this.longitudeBands = longitudeBands;
+    this.latitudeBands = 30;
+    this.longitudeBands = 30;
+    this.count = 0;
 
-    this.vertexPositionData = [];
-    this.normalData = [];
-    this.indexData = [];
-    this.colorData = [];
+    this.generateSphereData = function(time) {
+        const step = 0.001;
+        const x = Math.sin(time * step);
+        const z = Math.cos(time * step);
 
-    this.generateSphereData = function() {
+        const vertexPositionData = [];
+
         for (let latNumber = 0; latNumber <= this.latitudeBands; latNumber++) {
             const theta = latNumber * Math.PI / this.latitudeBands;
             const sinTheta = Math.sin(theta);
@@ -251,81 +254,40 @@ function Sphere(name, radius, latitudeBands, longitudeBands) {
                 const sinPhi = Math.sin(phi);
                 const cosPhi = Math.cos(phi);
 
-                const x = cosPhi * sinTheta;
-                const y = cosTheta;
-                const z = sinPhi * sinTheta;
+                const xPos = cosPhi * sinTheta;
+                const yPos = cosTheta;
+                const zPos = sinPhi * sinTheta;
 
-                this.normalData.push(x);
-                this.normalData.push(y);
-                this.normalData.push(z);
-                this.vertexPositionData.push(this.radius * x);
-                this.vertexPositionData.push(this.radius * y);
-                this.vertexPositionData.push(this.radius * z);
-                this.colorData.push(0.0, 1.0, 0.0, 1.0);
+                vertexPositionData.push(this.radius * xPos + x);
+                vertexPositionData.push(this.radius * yPos);
+                vertexPositionData.push(this.radius * zPos + z);
             }
         }
 
-        for (let latNumber = 0; latNumber < this.latitudeBands; latNumber++) {
-            for (let longNumber = 0; longNumber < this.longitudeBands; longNumber++) {
-                const first = (latNumber * (this.longitudeBands + 1)) + longNumber;
-                const second = first + this.longitudeBands + 1;
-                this.indexData.push(first);
-                this.indexData.push(second);
-                this.indexData.push(first + 1);
-
-                this.indexData.push(second);
-                this.indexData.push(second + 1);
-                this.indexData.push(first + 1);
-            }
-        }
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STREAM_DRAW);
+        this.count = vertexPositionData.length / 3;
     }
 
-    this.initializeBuffers = function() {
-        this.vertexPositionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexPositionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertexPositionData), gl.STATIC_DRAW);
-        this.vertexPositionBuffer.itemSize = 3;
-        this.vertexPositionBuffer.numItems = this.vertexPositionData.length / 3;
+    this.draw = function (projectionViewMatrix) {
+        const time = Date.now();
+        this.generateSphereData(time);
 
-        this.normalBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.normalData), gl.STATIC_DRAW);
-        this.normalBuffer.itemSize = 3;
-        this.normalBuffer.numItems = this.normalData.length / 3;
+        const step = 0.001;
+        const x = Math.sin(time * step);
+        const z = Math.cos(time * step);
+        const translation = m4.translation(x, 0, z);
+        const modelViewProjection = m4.multiply(projectionViewMatrix, translation);
 
-        this.colorBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colorData), gl.STATIC_DRAW);
-        this.colorBuffer.itemSize = 4;
-        this.colorBuffer.numItems = this.colorData.length / 4;
+        gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
+        gl.uniform4fv(shProgram.iColor, [0.0, 1.0, 0.0, 1.0]); // Solid bright green color
 
-        this.indexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indexData), gl.STATIC_DRAW);
-        this.indexBuffer.itemSize = 1;
-        this.indexBuffer.numItems = this.indexData.length;
-    }
-
-    this.draw = function() {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexPositionBuffer);
-        gl.vertexAttribPointer(shProgram.iAttribVertex, this.vertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iAttribVertex);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
-        gl.vertexAttribPointer(shProgram.iAttribNormal, this.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(shProgram.iAttribNormal);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
-        gl.vertexAttribPointer(shProgram.iColor, this.colorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(shProgram.iColor);
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        gl.drawElements(gl.TRIANGLES, this.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.count);
     }
-
-    // Generate sphere data and initialize buffers
-    this.generateSphereData();
-    this.initializeBuffers();
 }
 
 // Constructor
@@ -427,8 +389,14 @@ function draw(animate = false) {
     drawMesh();
     gl.colorMask(true, true, true, true); // Restore color mask to default
 
+
+
+
+    // Animate the sphere
+    sphere.draw(modelViewProjection);
+
     if (animate) {
-        window.requestAnimationFrame(()=>draw(true));
+        window.requestAnimationFrame(() => draw(true));
     }
 }
 
@@ -668,7 +636,7 @@ export function init() {
 
     spaceball = new TrackballRotator(canvas, draw, 0);
     initStereoCamera();
-    sphere = new Sphere('Sphere', 0.5, 30, 30);
+    sphere = new Sphere('Sphere', 0.5);
     draw(true);
 }
 

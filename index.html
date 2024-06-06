@@ -17,13 +17,6 @@
 <body>
     <h2>A "Surface of Revolution with Damping Circular Waves" with "Trackball" Mouse Rotation</h2>
 
-    <div>
-        <label for="check-filter">Шелфовий фільтр високих частот</label>
-        <input type="checkbox" name="check-filter" id="check-filter" checked>
-    </div>
-    <audio id="audio" crossorigin="anonymous" controls src="https://raw.githubusercontent.com/denys-pavskyi/Methods_of_synthesis_of_virtual_reality_Assignment/CGW/assets/Tyler,%20The%20Creator%20-%20See%20You%20Again%20(feat.%20Kali%20Uchis).mp3"></audio>
-
-
     <label for="u_points">Number of points in u direction:</label>
     <input type="range" id="u_points" min="1" max="400" step="2" value="43">
     <span id="u_points_value"></span><br><br>
@@ -56,13 +49,21 @@
     X = <span id="x_light_value"></span>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
     Y = <span id="y_light_value"></span>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
     Z = <span id="z_light_value"></span>
-    <br>
+    <br><br>
+
+    <label for="autoRotate">Auto Rotate:</label>
+    <input type="checkbox" id="autoRotate" checked><br><br>
+    
+
+    <label for="rotationSlider">Sphere Rotation Position:</label>
+    <input type="range" id="rotationSlider" min="0" max="360" step="1" value="0">
+    <span id="rotationValue">0</span><br><br>
 
     <p id="message">Drag your mouse to rotate surface.<br>
     (On a touch screen, you can use your finger.)</p>
 
     <div id="canvas-holder">
-    <canvas width="600" height="600" id="webglcanvas" style="background-color:red"></canvas>
+        <canvas width="600" height="600" id="webglcanvas" style="background-color:red"></canvas>
     </div>
 </body>
 <script type="module">

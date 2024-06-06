@@ -32,6 +32,9 @@ let webCamModel;
 
 
 let sphere;
+let rotationPosition = 0;
+let autoRotate = true; 
+let sphereRadius = 0.6;
 
 function initStereoCamera() {
     stereoCamera = new StereoCamera(
@@ -229,65 +232,60 @@ function WebCameraImageModel(name){
 
 }
 
-function Sphere(name, radius) {
+function Sphere(name) {
     this.iVertexBuffer = gl.createBuffer();
     this.name = name;
-    this.radius = radius;
-    this.latitudeBands = 30;
-    this.longitudeBands = 30;
     this.count = 0;
 
-    this.generateSphereData = function(time) {
-        const step = 0.001;
-        const x = Math.sin(time * step);
-        const z = Math.cos(time * step);
-
-        const vertexPositionData = [];
-
-        for (let latNumber = 0; latNumber <= this.latitudeBands; latNumber++) {
-            const theta = latNumber * Math.PI / this.latitudeBands;
-            const sinTheta = Math.sin(theta);
-            const cosTheta = Math.cos(theta);
-
-            for (let longNumber = 0; longNumber <= this.longitudeBands; longNumber++) {
-                const phi = longNumber * 2 * Math.PI / this.longitudeBands;
-                const sinPhi = Math.sin(phi);
-                const cosPhi = Math.cos(phi);
-
-                const xPos = cosPhi * sinTheta;
-                const yPos = cosTheta;
-                const zPos = sinPhi * sinTheta;
-
-                vertexPositionData.push(this.radius * xPos + x);
-                vertexPositionData.push(this.radius * yPos);
-                vertexPositionData.push(this.radius * zPos + z);
-            }
-        }
-
+    this.BufferData = function(vertices) {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STREAM_DRAW);
-        this.count = vertexPositionData.length / 3;
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
+        this.count = vertices.length / 3;
     }
 
-    this.draw = function (projectionViewMatrix) {
-        const time = Date.now();
-        this.generateSphereData(time);
+    this.generateSphereData = function(centerX, centerY, centerZ, r) {
+        const vertexPositionData = CreateSphereSurface(centerX, centerY, centerZ, r);
+        this.BufferData(vertexPositionData);
+    }
 
-        const step = 0.001;
-        const x = Math.sin(time * step);
-        const z = Math.cos(time * step);
-        const translation = m4.translation(x, 0, z);
-        const modelViewProjection = m4.multiply(projectionViewMatrix, translation);
+    this.Draw = function(projectionViewMatrix, angle) {
+        let translation = m4.translation(Math.cos(angle) * 2, 0, Math.sin(angle) * 2);
+        let modelMatrix = m4.multiply(translation, spaceball.getViewMatrix());
+        let modelViewProjection = m4.multiply(projectionViewMatrix, modelMatrix);
 
         gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
-        gl.uniform4fv(shProgram.iColor, [0.0, 1.0, 0.0, 1.0]); // Solid bright green color
+        gl.uniform4fv(shProgram.iColor, [0.0, 1.0, 0.0, 1.0]); 
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
         gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iAttribVertex);
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.count);
+        gl.drawArrays(gl.LINE_STRIP, 0, this.count);
     }
+}
+
+function CreateSphereSurface(centerX, centerY, centerZ, r) {
+    let sphereVertexList = [];
+    let lon = -Math.PI;
+    let lat = -Math.PI * 0.5;
+    
+    while (lon < Math.PI) {
+        while (lat < Math.PI * 0.5) {
+            let v1 = sphereSurfaceData(centerX, centerY, centerZ, r, lon, lat);
+            sphereVertexList.push(v1.x, v1.y, v1.z);
+            lat += 0.1;
+        }
+        lat = -Math.PI * 0.5;
+        lon += 0.05;
+    }
+    return sphereVertexList;
+}
+
+function sphereSurfaceData(centerX, centerY, centerZ, r, u, v) {
+    let x = centerX + r * Math.sin(u) * Math.cos(v);
+    let y = centerY + r * Math.sin(u) * Math.sin(v);
+    let z = centerZ + r * Math.cos(u);
+    return { x: x, y: y, z: z };
 }
 
 // Constructor
@@ -316,6 +314,7 @@ function ShaderProgram(name, program) {
         gl.useProgram(this.prog);
     }
 }
+
 
 
 // Draws a Surface of Revolution with Damping Circular Waves, along with a set of coordinate axes.
@@ -391,9 +390,23 @@ function draw(animate = false) {
 
 
 
-
     // Animate the sphere
-    sphere.draw(modelViewProjection);
+    gl.uniform1f(shProgram.iUseColor, true);
+    let angle;
+    if (autoRotate) {
+        const time = Date.now() * 0.001;
+        angle = time * (360 / (2 * Math.PI)); // Convert time to degrees
+        rotationPosition = angle % 360;
+        document.getElementById('rotationSlider').value = rotationPosition;
+        document.getElementById('rotationValue').innerText = Math.floor(rotationPosition);
+    } else {
+        angle = rotationPosition;
+    }
+
+    const radians = angle * Math.PI / 180;
+    sphere.generateSphereData(Math.cos(radians) * 2, 0, Math.sin(radians) * 2, sphereRadius);
+    sphere.Draw(modelViewProjection, radians);
+    gl.uniform1f(shProgram.iUseColor, false);
 
     if (animate) {
         window.requestAnimationFrame(() => draw(true));
@@ -610,6 +623,7 @@ function createProgram(gl, vShader, fShader) {
 /**
  * initialization function that will be called when the page has loaded
  */
+
 export function init() {
     let canvas;
     webCamElement = initializeWebCamera();
@@ -636,7 +650,20 @@ export function init() {
 
     spaceball = new TrackballRotator(canvas, draw, 0);
     initStereoCamera();
-    sphere = new Sphere('Sphere', 0.5);
+
+    sphere = new Sphere('Sphere');
+
+    document.getElementById('rotationSlider').addEventListener('input', (event) => {
+        rotationPosition = event.target.value;
+        document.getElementById('rotationValue').innerText = rotationPosition;
+        draw();
+    });
+
+    document.getElementById('autoRotate').addEventListener('change', (event) => {
+        autoRotate = event.target.checked;
+        draw();
+    });
+
     draw(true);
 }
 
